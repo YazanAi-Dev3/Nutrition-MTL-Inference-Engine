@@ -1,0 +1,28 @@
+{
+  "paths": {
+    "dataset_egyptian_csv": "Egyptian_Food_Combined_with_Users_Ratings.csv",
+    "model_weights_path": "best_nutrition_mtl_model.pth",
+    "reference_images_dir": "arabic_food_dataset",
+    "knowledge_base_path": "visual_knowledge_base.pt"
+  },
+  "server": {
+    "title": "Smart Food Analyzer API",
+    "host": "127.0.0.1",
+    "port": 8000
+  },
+  "pipeline": {
+    "match_threshold": 0.75,
+    "k": 5
+  },
+  "model": {
+    "num_ingredients": 555
+  },
+  "device": {
+    "use_cuda_if_available": true
+  },
+  "image": {
+    "size": [224, 224],
+    "normalize_mean": [0.485, 0.456, 0.406],
+    "normalize_std": [0.229, 0.224, 0.225]
+  }
+}

@@ -1,0 +1,31 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# PyTorch
+*.pth
+*.pt
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Archives
+*.7z
+*.zip
+*.tar.gz
+*.rar
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+
+# FastAPI
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

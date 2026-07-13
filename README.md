@@ -1,48 +1,87 @@
-# Nutrition-MTL-Inference-Engine
+<div align="center">
 
-An AI-powered visual nutrition estimation system and end-to-end operational pipeline. This project provides a Multi-Task Learning (MTL) architecture to predict macro-nutrients and classify food ingredients directly from images, along with a production-ready FastAPI backend for serving the model.
+# Nutrition MTL Inference Engine
 
-## AI Architecture
+### Visual macro-nutrient estimation from a single food photo
 
-The core model (`nutritionmtlmodel.ipynb`) implements a **Multi-Task Learning (MTL)** approach:
-- **Backbone:** A `ConvNeXt` feature extractor acts as the visual backbone.
-- **Dual Heads:**
-  - *Classification Head:* Multi-label ingredient classification to identify components of the dish.
-  - *Regression Head:* Continuous prediction of key macro-nutrients (Calories, Fat, Carbs, Protein, and Mass).
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://python.org)
+[![PyTorch](https://img.shields.io/badge/PyTorch-ConvNeXt_MTL-EE4C2C?logo=pytorch&logoColor=white)](https://pytorch.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Inference_API-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-## End-to-End Operational Pipeline
+**A multi-task learning system that predicts ingredients and macro-nutrients directly from a dish image — served through a modular FastAPI backend with a hybrid embedding-matching pipeline.**
 
-The `app/` directory contains a modularized, production-ready FastAPI backend that serves the trained MTL model.
+</div>
 
-### Project Structure
-- `app/server.py`: FastAPI application setup, routes, and endpoint definitions.
-- `app/pipeline.py`: The inference pipeline that handles image preprocessing, model execution, and response formatting.
-- `app/model.py`: PyTorch model definitions for the MTL architecture.
-- `app/data.py`: Dataset utilities and data classes.
-- `app/config.py` & `settings.json`: Configuration management.
-- `run.py`: The entry point to start the `uvicorn` server.
+---
 
-### Running the Server
+## Architecture
 
-1. **Install dependencies:**
-   ```bash
-   pip install -r requirements.txt
-   ```
+```mermaid
+flowchart TD
+    IMG["Dish image"] --> PRE["Preprocess 224x224<br/>ImageNet normalization"]
+    PRE --> BB["ConvNeXt-Tiny backbone<br/>(feature extractor)"]
 
-2. **Start the FastAPI server:**
-   ```bash
-   python run.py
-   ```
-   The server will start on `http://127.0.0.1:8000`. You can test endpoints via the Swagger UI at `http://127.0.0.1:8000/docs`.
+    BB --> H1["Ingredients head<br/>multi-label classification<br/>(555 ingredient classes)"]
+    BB --> RAW["Normalized embedding"]
 
-## Setup & Weights (Important)
+    RAW --> KB{"Cosine similarity vs<br/>visual knowledge base<br/>≥ match_threshold (0.75)?"}
+    KB -- "match (k-NN, top-5)" --> KNN["Retrieve known dish<br/>+ high-confidence metrics"]
+    KB -- "no match" --> REG["Regression head<br/>calories · fat · carbs · protein · mass"]
 
-To keep the repository lightweight, heavy model weights and datasets are excluded from source control. **You must download these artifacts and place them in the correct directories before running the server.**
+    H1 --> API["FastAPI /analyze-dish"]
+    KNN --> API
+    REG --> API
+```
 
-1. **Model Weights:**
-   - Download the primary MTL weight file: `best_nutrition_mtl_model.pth`
-   - Download the visual knowledge base: `visual_knowledge_base.pt`
-   - Place both files in the root of the project directory (alongside `run.py`).
+### The Hybrid Trick (`app/pipeline.py`, verified)
 
-2. **Datasets (Optional for Training/Evaluation):**
-   - The Nutrition5k dataset or custom CSVs (e.g., `Egyptian_Food_Combined_with_Users_Ratings.csv`) should be placed in `arabic_food_dataset/` or the designated data folder as configured in `settings.json`.
+`run_hybrid_pipeline()` first normalizes the ConvNeXt embedding and computes **cosine similarity against a `visual_knowledge_base`** of known dishes. If the best average similarity clears `match_threshold` (0.75), it returns the matched dish's metrics with a confidence score; otherwise it falls back to the **regression head** for a direct macro-nutrient prediction. This blends retrieval accuracy with generalization to unseen dishes.
+
+---
+
+## Project Structure
+
+```
+Nutrition-MTL-Inference-Engine/
+├── nutritionmtlmodel.ipynb     # training notebook (MTL architecture)
+├── run.py                      # entry point → uvicorn server
+└── app/
+    ├── server.py               # FastAPI app + POST /analyze-dish
+    ├── pipeline.py             # hybrid inference (k-NN match → regression fallback)
+    ├── model.py                # NutritionMTLModel (ConvNeXt-Tiny + dual heads)
+    ├── data.py                 # dataset utilities
+    └── config.py + settings.json
+```
+
+---
+
+## Running the Server
+
+```bash
+git clone https://github.com/YazanAi-Dev3/Nutrition-MTL-Inference-Engine.git
+cd Nutrition-MTL-Inference-Engine
+pip install -r requirements.txt
+python run.py
+```
+
+Server starts at `http://127.0.0.1:8000` — test via Swagger UI at `/docs`.
+
+> **Weights required:** place `best_nutrition_mtl_model.pth` and `visual_knowledge_base.pt` in the project root before running (excluded from the repo for size).
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Backbone | ConvNeXt-Tiny (torchvision) |
+| Heads | multi-label ingredient classification + 5-target regression |
+| Retrieval | cosine-similarity k-NN over a visual knowledge base |
+| Serving | FastAPI + Uvicorn |
+
+---
+
+## License
+
+MIT.
